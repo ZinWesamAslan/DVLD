@@ -5,13 +5,14 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger; // استدعاء مساحة الأسماء الخاصة باللوغر المشترك
 
 namespace DVLDdataAccess.TestFolder
 {
     public class ClsTestsAccess
     {
         public static bool GetTestInfoByID(int TestID, ref int TestAppointmentID,
-                                          ref bool TestResult, ref string Notes, ref int CreatedByUserID)
+                                           ref bool TestResult, ref string Notes, ref int CreatedByUserID)
         {
             bool isFound = false;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
@@ -38,15 +39,19 @@ namespace DVLDdataAccess.TestFolder
                 }
                 reader.Close();
             }
-            catch (Exception) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to retrieve test data for TestID: {TestID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
         }
 
-        
         public static bool GetTestInfoByTestAppointmentID(int TestAppointmentID, ref int TestID,
-                                          ref bool TestResult, ref string Notes, ref int CreatedByUserID)
+                                           ref bool TestResult, ref string Notes, ref int CreatedByUserID)
         {
             bool isFound = false;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
@@ -73,7 +78,12 @@ namespace DVLDdataAccess.TestFolder
                 }
                 reader.Close();
             }
-            catch (Exception) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to retrieve test data for TestAppointmentID: {TestAppointmentID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
@@ -105,7 +115,11 @@ namespace DVLDdataAccess.TestFolder
                 if (result != null && int.TryParse(result.ToString(), out int insertedID))
                     ID = insertedID;
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to add new test for TestAppointmentID: {TestAppointmentID}", ex);
+            }
             finally { connection.Close(); }
 
             return ID;
@@ -139,7 +153,12 @@ namespace DVLDdataAccess.TestFolder
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception) { return false; }
+            catch (Exception ex)
+            {
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to update test database records for TestID: {TestID}", ex);
+                return false;
+            }
             finally { connection.Close(); }
 
             return (rowsAffected > 0);
@@ -159,7 +178,11 @@ namespace DVLDdataAccess.TestFolder
                 if (reader.HasRows) dt.Load(reader);
                 reader.Close();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تطبيق اللوغر
+                ClsLogger.LogError("Failed to retrieve all tests data table", ex);
+            }
             finally { connection.Close(); }
 
             return dt;
@@ -178,7 +201,11 @@ namespace DVLDdataAccess.TestFolder
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to delete test with TestID: {TestID}", ex);
+            }
             finally { connection.Close(); }
 
             return (rowsAffected > 0);
@@ -199,28 +226,30 @@ namespace DVLDdataAccess.TestFolder
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Error verifying test existence for TestID: {TestID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
         }
 
-        public static int GetNumberOfTrail(int LocalDrivingLicenseApplicationID,int TestTypeID)
+        public static int GetNumberOfTrail(int LocalDrivingLicenseApplicationID, int TestTypeID)
         {
             int NumberOfTrails = 0;
 
             using (SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString))
             {
-                //  شوف فكرةالكويري
                 string query = @"
                     select count(ta.TestAppointmentID) from TestAppointments ta 
                     where ta.IsLocked = 1 and ta.LocalDrivingLicenseApplicationID = @LocalDrivingLicenseApplicationID and ta.TestTypeID = @TestTypeID;
-         
                 ";
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
-
                     command.Parameters.AddWithValue("@LocalDrivingLicenseApplicationID", LocalDrivingLicenseApplicationID);
                     command.Parameters.AddWithValue("@TestTypeID", TestTypeID);
 
@@ -236,7 +265,8 @@ namespace DVLDdataAccess.TestFolder
                     }
                     catch (Exception ex)
                     {
-
+                        // تطبيق اللوغر للدالة التي تعتمد على الـ Using Statement
+                        ClsLogger.LogError($"Error calculating trials count for LDLAppID: {LocalDrivingLicenseApplicationID}, TestTypeID: {TestTypeID}", ex);
                     }
                 }
             }

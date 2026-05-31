@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger;
 
 namespace DVLDdataAccess.Users
 {
@@ -38,9 +39,11 @@ namespace DVLDdataAccess.Users
 
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                // تعديل: تمرير سياق المتغير والإكسبشن مباشرة للوغر الذكي
+                ClsLogger.LogError($"Failed to fetch data for UserID: {UserID}", ex);
             }
             finally
             {
@@ -51,7 +54,7 @@ namespace DVLDdataAccess.Users
         }
 
         //marked to delete
-        public static bool GetHashedPassword(string UserName , ref string HashedPassword)
+        public static bool GetHashedPassword(string UserName, ref string HashedPassword)
         {
             bool isFound = false;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
@@ -76,9 +79,10 @@ namespace DVLDdataAccess.Users
 
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                ClsLogger.LogError($"Failed to fetch hashed password for UserName: {UserName}", ex);
             }
             finally
             {
@@ -88,8 +92,8 @@ namespace DVLDdataAccess.Users
             return isFound;
         }
 
-        public static bool GetUserByName(string UserName , ref int UserID, ref int PersonID, ref string Password, ref bool IsActive)
-        { 
+        public static bool GetUserByName(string UserName, ref int UserID, ref int PersonID, ref string Password, ref bool IsActive)
+        {
             bool isFound = false;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
             string query = "SELECT * FROM Users WHERE UserName = @UserName";
@@ -116,9 +120,10 @@ namespace DVLDdataAccess.Users
 
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                ClsLogger.LogError($"Failed to fetch user by UserName: {UserName}", ex);
             }
             finally
             {
@@ -157,9 +162,10 @@ namespace DVLDdataAccess.Users
 
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                ClsLogger.LogError($"Failed to fetch user by PersonID: {PersonID}", ex);
             }
             finally
             {
@@ -168,7 +174,6 @@ namespace DVLDdataAccess.Users
 
             return isFound;
         }
-
 
         public static int AddNewUser(int PersonID, string UserName, string Password, bool IsActive)
         {
@@ -193,9 +198,9 @@ namespace DVLDdataAccess.Users
                 if (result != null && int.TryParse(result.ToString(), out int insertedID))
                     ID = insertedID;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // handle/log if needed
+                ClsLogger.LogError($"Failed to add new user for PersonID: {PersonID} (UserName: {UserName})", ex);
             }
             finally
             {
@@ -230,8 +235,9 @@ namespace DVLDdataAccess.Users
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                ClsLogger.LogError($"Failed to update user database for UserID: {UserID}", ex);
                 return false;
             }
             finally
@@ -248,7 +254,7 @@ namespace DVLDdataAccess.Users
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
             string query = @"SELECT    Users.UserID, Users.PersonID, FullName = People.FirstName + ' ' + People.SecondName + ' ' + 
-		                               People.ThirdName + ' ' + People.LastName , Users.UserName, Users.IsActive
+                                       People.ThirdName + ' ' + People.LastName , Users.UserName, Users.IsActive
                              FROM      Users INNER JOIN
                                        People ON Users.PersonID = People.PersonID";
             SqlCommand command = new SqlCommand(query, connection);
@@ -263,9 +269,9 @@ namespace DVLDdataAccess.Users
                 }
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // handle/log if needed
+                ClsLogger.LogError("Failed to retrieve all users list", ex);
             }
             finally
             {
@@ -289,9 +295,9 @@ namespace DVLDdataAccess.Users
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // handle/log if needed
+                ClsLogger.LogError($"Failed to delete user with UserID: {UserID}", ex);
             }
             finally
             {
@@ -316,9 +322,10 @@ namespace DVLDdataAccess.Users
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                ClsLogger.LogError($"Error verifying user existence by PersonID: {PersonID}", ex);
             }
             finally
             {
@@ -343,9 +350,10 @@ namespace DVLDdataAccess.Users
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                ClsLogger.LogError($"Error verifying user existence by UserID: {UserID}", ex);
             }
             finally
             {
@@ -370,9 +378,10 @@ namespace DVLDdataAccess.Users
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                ClsLogger.LogError($"Error verifying user existence by UserName: {UserName}", ex);
             }
             finally
             {
@@ -383,7 +392,7 @@ namespace DVLDdataAccess.Users
         }
 
         // marked to delete
-        public static bool IsUserExist(string UserName , string Password)
+        public static bool IsUserExist(string UserName, string Password)
         {
             bool isFound = false;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
@@ -399,9 +408,10 @@ namespace DVLDdataAccess.Users
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                ClsLogger.LogError($"Error verifying credentials existence for UserName: {UserName}", ex);
             }
             finally
             {
@@ -426,9 +436,10 @@ namespace DVLDdataAccess.Users
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                ClsLogger.LogError($"Error checking activity status for UserName: {UserName}", ex);
             }
             finally
             {
@@ -451,15 +462,16 @@ namespace DVLDdataAccess.Users
             SqlCommand command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@UserID", UserID);
             command.Parameters.AddWithValue("@Password", Password ?? (object)DBNull.Value);
-            
+
 
             try
             {
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                ClsLogger.LogError($"Failed to change password for UserID: {UserID}", ex);
                 return false;
             }
             finally
@@ -469,8 +481,5 @@ namespace DVLDdataAccess.Users
 
             return (rowsAffected > 0);
         }
-
     }
-
 }
-

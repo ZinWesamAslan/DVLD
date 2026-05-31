@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger; // استدعاء مساحة الأسماء الخاصة باللّوغر
 
 namespace DVLDdataAccess.ApplicationFolder
 {
@@ -17,14 +18,11 @@ namespace DVLDdataAccess.ApplicationFolder
 
             using (SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString))
             {
-                //  شوف فكرةالكويري
                 string query = @"Select l.LocalDrivingLicenseApplicationID from LocalDrivingLicenseApplications l 
-                                 where l.ApplicationID = @ApplicationID;
-";
+                                  where l.ApplicationID = @ApplicationID;";
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
-
                     command.Parameters.AddWithValue("@ApplicationID", ApplicationID);
 
                     try
@@ -39,15 +37,16 @@ namespace DVLDdataAccess.ApplicationFolder
                     }
                     catch (Exception ex)
                     {
-
+                        // تسجيل الخطأ بداخل الـ Event Viewer
+                        ClsLogger.LogError($"Failed to retrieve LDLAID for ApplicationID: {ApplicationID}", ex);
                     }
                 }
             }
 
             return LocalDrivingLicenseApplicationID;
         }
-        
-        
+
+
         public static int AddNewLocalDrivingLicenseApplication(
                             int ApplicantPersonID, DateTime ApplicationDate, int ApplicationTypeID,
                             byte ApplicationStatus, DateTime LastStatusDate, float PaidFees,
@@ -57,7 +56,6 @@ namespace DVLDdataAccess.ApplicationFolder
 
             using (SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString))
             {
-                //  شوف فكرةالكويري
                 string query = @"
             BEGIN TRY
                 BEGIN TRANSACTION;
@@ -91,7 +89,7 @@ namespace DVLDdataAccess.ApplicationFolder
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
-                    
+
                     command.Parameters.AddWithValue("@ApplicantPersonID", ApplicantPersonID);
                     command.Parameters.AddWithValue("@ApplicationDate", ApplicationDate);
                     command.Parameters.AddWithValue("@ApplicationTypeID", ApplicationTypeID);
@@ -99,8 +97,6 @@ namespace DVLDdataAccess.ApplicationFolder
                     command.Parameters.AddWithValue("@LastStatusDate", LastStatusDate);
                     command.Parameters.AddWithValue("@PaidFees", PaidFees);
                     command.Parameters.AddWithValue("@CreatedByUserID", CreatedByUserID);
-
-                    
                     command.Parameters.AddWithValue("@LicenseClassID", LicenseClassID);
 
                     try
@@ -115,7 +111,8 @@ namespace DVLDdataAccess.ApplicationFolder
                     }
                     catch (Exception ex)
                     {
-                        
+                        // تسجيل الخطأ بداخل الـ Event Viewer
+                        ClsLogger.LogError($"Failed to add new local driving license application for PersonID: {ApplicantPersonID}", ex);
                     }
                 }
             }
@@ -157,12 +154,12 @@ namespace DVLDdataAccess.ApplicationFolder
                     try
                     {
                         connection.Open();
-
                         rowsAffected = command.ExecuteNonQuery();
                     }
                     catch (Exception ex)
                     {
-                        
+                        // تسجيل الخطأ بداخل الـ Event Viewer
+                        ClsLogger.LogError($"Failed to cancel local driving license application for LDLAID: {LocalDrivingLicenseApplicationID}", ex);
                     }
                 }
             }
@@ -205,12 +202,12 @@ namespace DVLDdataAccess.ApplicationFolder
                     try
                     {
                         connection.Open();
-
                         rowsAffected = command.ExecuteNonQuery();
                     }
                     catch (Exception ex)
                     {
-
+                        // تسجيل الخطأ بداخل الـ Event Viewer
+                        ClsLogger.LogError($"Failed to delete local driving license application for LDLAID: {LocalDrivingLicenseApplicationID}", ex);
                     }
                 }
             }
@@ -221,36 +218,29 @@ namespace DVLDdataAccess.ApplicationFolder
 
         public static DataTable GetAllLocalDrivingLicenseApplications()
         {
-
             DataTable dt = new DataTable();
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
-            string query =
-             @"Select * from ListLocalDrivingLicenseApplications_View";
-
+            string query = @"Select * from ListLocalDrivingLicenseApplications_View";
 
             SqlCommand command = new SqlCommand(query, connection);
 
             try
             {
                 connection.Open();
-
                 SqlDataReader reader = command.ExecuteReader();
 
                 if (reader.HasRows)
-
                 {
                     dt.Load(reader);
                 }
 
                 reader.Close();
-
-
             }
-
             catch (Exception ex)
             {
-                // Console.WriteLine("Error: " + ex.Message);
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError("Failed to retrieve local driving license applications table from view", ex);
             }
             finally
             {
@@ -258,21 +248,17 @@ namespace DVLDdataAccess.ApplicationFolder
             }
 
             return dt;
-
         }
 
         public static bool CheckPersonAge(DateTime DateOfBirth, int ClassID)
         {
             bool AcceptedAge = false;
-
-            int Age = DateTime.Now.Year - DateOfBirth.Year  ;
+            int Age = DateTime.Now.Year - DateOfBirth.Year;
 
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
-
             string query = "select 1 from LicenseClasses lc where @ClassID = 1 and MinimumAllowedAge <= @Age;";
 
             SqlCommand command = new SqlCommand(query, connection);
-
             command.Parameters.AddWithValue("@ClassID", ClassID);
             command.Parameters.AddWithValue("@Age", Age);
 
@@ -280,15 +266,14 @@ namespace DVLDdataAccess.ApplicationFolder
             {
                 connection.Open();
                 SqlDataReader reader = command.ExecuteReader();
-
                 AcceptedAge = reader.HasRows;
-
                 reader.Close();
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
                 AcceptedAge = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Error checking age limit for ClassID: {ClassID}", ex);
             }
             finally
             {
@@ -301,21 +286,19 @@ namespace DVLDdataAccess.ApplicationFolder
 
 
         public static bool GetLocalDrivingLicenseApplicationInfoByID(
-                       int LocalDrivingLicenseApplicationID, ref int ApplicationID, ref int ApplicantPersonID,
-                       ref DateTime ApplicationDate, ref int ApplicationTypeID, ref byte ApplicationStatus,
-                       ref DateTime LastStatusDate, ref float PaidFees, ref int CreatedByUserID, ref int LicenseClassID)
+                               int LocalDrivingLicenseApplicationID, ref int ApplicationID, ref int ApplicantPersonID,
+                               ref DateTime ApplicationDate, ref int ApplicationTypeID, ref byte ApplicationStatus,
+                               ref DateTime LastStatusDate, ref float PaidFees, ref int CreatedByUserID, ref int LicenseClassID)
         {
-
             bool isFound = false;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
             string query = @"SELECT *
-                     FROM LocalDrivingLicenseApplications 
-                     INNER JOIN Applications ON LocalDrivingLicenseApplications.ApplicationID = Applications.ApplicationID
-                     WHERE LocalDrivingLicenseApplicationID = @LocalDrivingLicenseApplicationID";
+                             FROM LocalDrivingLicenseApplications 
+                             INNER JOIN Applications ON LocalDrivingLicenseApplications.ApplicationID = Applications.ApplicationID
+                             WHERE LocalDrivingLicenseApplicationID = @LocalDrivingLicenseApplicationID";
 
             SqlCommand command = new SqlCommand(query, connection);
-
             command.Parameters.AddWithValue("@LocalDrivingLicenseApplicationID", LocalDrivingLicenseApplicationID);
 
             try
@@ -325,7 +308,6 @@ namespace DVLDdataAccess.ApplicationFolder
 
                 if (reader.Read())
                 {
-
                     isFound = true;
                     ApplicationID = (int)reader["ApplicationID"];
                     ApplicantPersonID = (int)reader["ApplicantPersonID"];
@@ -342,8 +324,9 @@ namespace DVLDdataAccess.ApplicationFolder
             catch (Exception ex)
             {
                 isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve information for LDLAID: {LocalDrivingLicenseApplicationID}", ex);
             }
-
             finally
             {
                 connection.Close();
@@ -353,26 +336,25 @@ namespace DVLDdataAccess.ApplicationFolder
 
 
         public static bool UpdateLocalDrivingLicenseApplication(
-
             int LocalDrivingLicenseApplicationID, int ApplicationID, int ApplicantPersonID,
             DateTime ApplicationDate, int ApplicationTypeID, byte ApplicationStatus,
             DateTime LastStatusDate, float PaidFees, int CreatedByUserID, int LicenseClassID)
         {
             int rowsAffected = 0;
-            SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);            
+            SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
             string query = @"UPDATE Applications 
-                     SET ApplicantPersonID = @ApplicantPersonID,
-                         ApplicationDate = @ApplicationDate,
-                         ApplicationTypeID = @ApplicationTypeID,
-                         ApplicationStatus = @ApplicationStatus,
-                         LastStatusDate = @LastStatusDate,
-                         PaidFees = @PaidFees,
-                         CreatedByUserID = @CreatedByUserID
-                     WHERE ApplicationID = @ApplicationID;
-                     UPDATE LocalDrivingLicenseApplications
-                     SET LicenseClassID = @LicenseClassID
-                     WHERE LocalDrivingLicenseApplicationID = @LocalDrivingLicenseApplicationID;";
+                             SET ApplicantPersonID = @ApplicantPersonID,
+                                 ApplicationDate = @ApplicationDate,
+                                 ApplicationTypeID = @ApplicationTypeID,
+                                 ApplicationStatus = @ApplicationStatus,
+                                 LastStatusDate = @LastStatusDate,
+                                 PaidFees = @PaidFees,
+                                 CreatedByUserID = @CreatedByUserID
+                             WHERE ApplicationID = @ApplicationID;
+                             UPDATE LocalDrivingLicenseApplications
+                             SET LicenseClassID = @LicenseClassID
+                             WHERE LocalDrivingLicenseApplicationID = @LocalDrivingLicenseApplicationID;";
 
             SqlCommand command = new SqlCommand(query, connection);
 
@@ -394,6 +376,8 @@ namespace DVLDdataAccess.ApplicationFolder
             }
             catch (Exception ex)
             {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to update application details for LDLAID: {LocalDrivingLicenseApplicationID}", ex);
                 return false;
             }
             finally
@@ -409,20 +393,16 @@ namespace DVLDdataAccess.ApplicationFolder
 
             using (SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString))
             {
-                //  شوف فكرةالكويري
                 string query = @"
-
-                select  COUNT(ta.TestTypeID) AS PassedTestCount  
-                    FROM  Tests t INNER JOIN TestAppointments ta
-			        ON    t.TestAppointmentID = ta.TestAppointmentID  
+                select COUNT(ta.TestTypeID) AS PassedTestCount  
+                    FROM Tests t INNER JOIN TestAppointments ta
+                    ON t.TestAppointmentID = ta.TestAppointmentID  
                     WHERE ta.LocalDrivingLicenseApplicationID = @LocalDrivingLicenseApplicationID AND t.TestResult = 1;
                 ";
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
-
                     command.Parameters.AddWithValue("@LocalDrivingLicenseApplicationID", LocalDrivingLicenseApplicationID);
-                    
 
                     try
                     {
@@ -436,7 +416,8 @@ namespace DVLDdataAccess.ApplicationFolder
                     }
                     catch (Exception ex)
                     {
-
+                        // تسجيل الخطأ بداخل الـ Event Viewer
+                        ClsLogger.LogError($"Error counting passed tests for LDLAID: {LocalDrivingLicenseApplicationID}", ex);
                     }
                 }
             }

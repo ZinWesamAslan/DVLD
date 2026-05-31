@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger; // استدعاء مساحة الأسماء الخاصة باللّوغر
 
 namespace DVLDdataAccess.DetainedLicenses
 {
@@ -34,19 +35,22 @@ namespace DVLDdataAccess.DetainedLicenses
                     CreatedByUserID = (int)reader["CreatedByUserID"];
                     IsReleased = (bool)reader["IsReleased"];
 
-                    
                     ReleaseDate = (reader["ReleaseDate"] != DBNull.Value) ? (DateTime)reader["ReleaseDate"] : DateTime.MaxValue;
                     ReleasedByUserID = (reader["ReleasedByUserID"] != DBNull.Value) ? (int)reader["ReleasedByUserID"] : -1;
                     ReleaseApplicationID = (reader["ReleaseApplicationID"] != DBNull.Value) ? (int)reader["ReleaseApplicationID"] : -1;
                 }
                 reader.Close();
             }
-            catch { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve detained license info for DetainID: {DetainID}", ex);
+            }
             finally { connection.Close(); }
             return isFound;
         }
 
-        
         public static bool GetDetainedLicenseInfoByLicenseID(int LicenseID,
         ref int DetainID, ref DateTime DetainDate, ref float FineFees,
         ref int CreatedByUserID, ref bool IsReleased, ref DateTime ReleaseDate,
@@ -71,18 +75,21 @@ namespace DVLDdataAccess.DetainedLicenses
                     CreatedByUserID = (int)reader["CreatedByUserID"];
                     IsReleased = (bool)reader["IsReleased"];
 
-
                     ReleaseDate = (reader["ReleaseDate"] != DBNull.Value) ? (DateTime)reader["ReleaseDate"] : DateTime.MaxValue;
                     ReleasedByUserID = (reader["ReleasedByUserID"] != DBNull.Value) ? (int)reader["ReleasedByUserID"] : -1;
                     ReleaseApplicationID = (reader["ReleaseApplicationID"] != DBNull.Value) ? (int)reader["ReleaseApplicationID"] : -1;
                 }
                 reader.Close();
             }
-            catch { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve detained license info for LicenseID: {LicenseID}", ex);
+            }
             finally { connection.Close(); }
             return isFound;
         }
-
 
         public static int AddNewDetainedLicense(int LicenseID, DateTime DetainDate,
             float FineFees, int CreatedByUserID)
@@ -106,12 +113,15 @@ namespace DVLDdataAccess.DetainedLicenses
                 if (result != null && int.TryParse(result.ToString(), out int insertedID))
                     DetainID = insertedID;
             }
-            catch {  }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to add new detained license for LicenseID: {LicenseID}", ex);
+            }
             finally { connection.Close(); }
             return DetainID;
         }
 
-        
         public static bool ReleaseDetainedLicense(int DetainID, int ReleasedByUserID, int ReleaseApplicationID)
         {
             int rowsAffected = 0;
@@ -134,12 +144,16 @@ namespace DVLDdataAccess.DetainedLicenses
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to release detained license for DetainID: {DetainID}", ex);
+                return false;
+            }
             finally { connection.Close(); }
             return (rowsAffected > 0);
         }
 
-        
         public static DataTable GetAllDetainedLicenses()
         {
             DataTable dt = new DataTable();
@@ -153,19 +167,20 @@ namespace DVLDdataAccess.DetainedLicenses
                 if (reader.HasRows) dt.Load(reader);
                 reader.Close();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError("Failed to retrieve all detained licenses table from database", ex);
+            }
             finally { connection.Close(); }
             return dt;
         }
 
-
-        
         public static bool IsLicenseDetained(int LicenseID)
         {
             bool isFound = false;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
-            
             string query = "SELECT Found=1 FROM DetainedLicenses WHERE LicenseID = @LicenseID AND IsReleased = 0";
 
             SqlCommand command = new SqlCommand(query, connection);
@@ -183,8 +198,9 @@ namespace DVLDdataAccess.DetainedLicenses
             }
             catch (Exception ex)
             {
-                
                 isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Error checking detain status for LicenseID: {LicenseID}", ex);
             }
             finally
             {
@@ -193,6 +209,5 @@ namespace DVLDdataAccess.DetainedLicenses
 
             return isFound;
         }
-
     }
 }

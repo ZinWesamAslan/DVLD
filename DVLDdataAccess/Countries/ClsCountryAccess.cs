@@ -5,13 +5,13 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger; // استدعاء مساحة الأسماء الخاصة باللّوغر
 
 namespace DVLDdataAccess
 {
     public class ClsCountryAccess
     {
         public static bool GetCountryInfoByID(int CountryID, ref string CountryName)
-                                           
         {
             bool isFound = false;
 
@@ -30,10 +30,8 @@ namespace DVLDdataAccess
 
                 if (reader.Read())
                 {
-
                     // The record was found
                     isFound = true;
-
                     CountryName = ((string)reader["CountryName"]).Trim();
                 }
                 else
@@ -43,13 +41,12 @@ namespace DVLDdataAccess
                 }
 
                 reader.Close();
-
-
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
                 isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer مع تمرير المعامل
+                ClsLogger.LogError($"Failed to retrieve country information for CountryID: {CountryID}", ex);
             }
             finally
             {
@@ -59,8 +56,7 @@ namespace DVLDdataAccess
             return isFound;
         }
 
-        public static bool GetCountryInfoByName(ref int CountryID,  string CountryName)
-
+        public static bool GetCountryInfoByName(ref int CountryID, string CountryName)
         {
             bool isFound = false;
 
@@ -79,7 +75,6 @@ namespace DVLDdataAccess
 
                 if (reader.Read())
                 {
-
                     // The record was found
                     isFound = true;
                     CountryID = (int)reader["CountryID"];
@@ -91,13 +86,12 @@ namespace DVLDdataAccess
                 }
 
                 reader.Close();
-
-
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
                 isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer مع تمرير اسم الدولة المعني
+                ClsLogger.LogError($"Failed to retrieve country information for CountryName: {CountryName}", ex);
             }
             finally
             {

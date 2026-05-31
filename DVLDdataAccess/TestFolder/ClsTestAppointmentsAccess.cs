@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger;
 
 namespace DVLDdataAccess.TestFolder
 {
@@ -50,9 +51,11 @@ namespace DVLDdataAccess.TestFolder
                 }
                 reader.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to retrieve test appointment data for TestAppointmentID: {TestAppointmentID}", ex);
             }
             finally
             {
@@ -99,7 +102,11 @@ namespace DVLDdataAccess.TestFolder
                     ID = insertedID;
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to add new test appointment for LDLApplicationID: {LocalDrivingLicenseApplicationID}, TestTypeID: {TestTypeID}", ex);
+            }
             finally
             {
                 connection.Close();
@@ -116,14 +123,14 @@ namespace DVLDdataAccess.TestFolder
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
             string query = @"UPDATE TestAppointments  
-                            SET TestTypeID = @TestTypeID, 
-                                LocalDrivingLicenseApplicationID = @LocalDrivingLicenseApplicationID, 
-                                AppointmentDate = @AppointmentDate, 
-                                PaidFees = @PaidFees, 
-                                CreatedByUserID = @CreatedByUserID, 
-                                IsLocked = @IsLocked, 
-                                RetakeTestApplicationID = @RetakeTestApplicationID
-                            WHERE TestAppointmentID = @TestAppointmentID";
+                             SET TestTypeID = @TestTypeID, 
+                                 LocalDrivingLicenseApplicationID = @LocalDrivingLicenseApplicationID, 
+                                 AppointmentDate = @AppointmentDate, 
+                                 PaidFees = @PaidFees, 
+                                 CreatedByUserID = @CreatedByUserID, 
+                                 IsLocked = @IsLocked, 
+                                 RetakeTestApplicationID = @RetakeTestApplicationID
+                             WHERE TestAppointmentID = @TestAppointmentID";
 
             SqlCommand command = new SqlCommand(query, connection);
 
@@ -145,8 +152,10 @@ namespace DVLDdataAccess.TestFolder
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to update test appointment for TestAppointmentID: {TestAppointmentID}", ex);
                 return false;
             }
             finally
@@ -173,7 +182,11 @@ namespace DVLDdataAccess.TestFolder
                 if (reader.HasRows) dt.Load(reader);
                 reader.Close();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تطبيق اللوغر
+                ClsLogger.LogError("Failed to retrieve all test appointments data table", ex);
+            }
             finally
             {
                 connection.Close();
@@ -197,7 +210,11 @@ namespace DVLDdataAccess.TestFolder
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to delete test appointment with TestAppointmentID: {TestAppointmentID}", ex);
+            }
             finally
             {
                 connection.Close();
@@ -223,7 +240,12 @@ namespace DVLDdataAccess.TestFolder
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Error checking existence of TestAppointmentID: {TestAppointmentID}", ex);
+            }
             finally
             {
                 connection.Close();
@@ -232,7 +254,7 @@ namespace DVLDdataAccess.TestFolder
             return isFound;
         }
 
-        public static DataTable GetApplicantAppointments(int LocalDrivingLicenseApplicationID , int TestTypeID)
+        public static DataTable GetApplicantAppointments(int LocalDrivingLicenseApplicationID, int TestTypeID)
         {
             DataTable dt = new DataTable();
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
@@ -243,7 +265,6 @@ namespace DVLDdataAccess.TestFolder
             where ta.LocalDrivingLicenseApplicationID = @LocalDrivingLicenseApplicationID and ta.TestTypeID = @TestTypeID order by ta.TestAppointmentID Desc;
             ";
 
-            
             SqlCommand command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@LocalDrivingLicenseApplicationID", LocalDrivingLicenseApplicationID);
             command.Parameters.AddWithValue("@TestTypeID", TestTypeID);
@@ -255,7 +276,11 @@ namespace DVLDdataAccess.TestFolder
                 if (reader.HasRows) dt.Load(reader);
                 reader.Close();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to load appointments for LocalDrivingLicenseApplicationID: {LocalDrivingLicenseApplicationID}, TestTypeID: {TestTypeID}", ex);
+            }
             finally
             {
                 connection.Close();
@@ -281,7 +306,12 @@ namespace DVLDdataAccess.TestFolder
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Error verifying active appointment for LocalDrivingLicenseApplicationID: {LocalDrivingLicenseApplicationID}, TestTypeID: {TestTypeID}", ex);
+            }
             finally
             {
                 connection.Close();
@@ -310,7 +340,12 @@ namespace DVLDdataAccess.TestFolder
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Error verifying passed status for LocalDrivingLicenseApplicationID: {LocalDrivingLicenseApplicationID}, TestTypeID: {TestTypeID}", ex);
+            }
             finally
             {
                 connection.Close();

@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger; // استدعاء مساحة الأسماء الجديدة للّوغر
 
 namespace DVLDdataAccess.InternationalLicenses
 {
@@ -16,7 +17,7 @@ namespace DVLDdataAccess.InternationalLicenses
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
             string query = @"
                                SELECT    InternationalLicenseID, ApplicationID, IssuedUsingLocalLicenseID, IssueDate, ExpirationDate, IsActive
-                               FROM       InternationalLicenses where DriverID = @DriverID;";
+                               FROM       InternationalLicenses WHERE DriverID = @DriverID;";
             SqlCommand command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@DriverID", DriverID);
             try
@@ -26,7 +27,11 @@ namespace DVLDdataAccess.InternationalLicenses
                 if (reader.HasRows) dt.Load(reader);
                 reader.Close();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to load international license history for DriverID: {DriverID}", ex);
+            }
             finally { connection.Close(); }
 
             return dt;
@@ -61,7 +66,12 @@ namespace DVLDdataAccess.InternationalLicenses
                 }
                 reader.Close();
             }
-            catch (Exception ex) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve international license for InternationalLicenseID: {InternationalLicenseID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
@@ -74,7 +84,7 @@ namespace DVLDdataAccess.InternationalLicenses
             bool isFound = false;
 
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
-            string query = "SELECT * FROM InternationalLicenses WHERE IssuedUsingLocalLicenseID = @IssuedUsingLocalLicenseID and isActive = 1";
+            string query = "SELECT * FROM InternationalLicenses WHERE IssuedUsingLocalLicenseID = @IssuedUsingLocalLicenseID AND isActive = 1";
             SqlCommand command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@IssuedUsingLocalLicenseID", IssuedUsingLocalLicenseID);
 
@@ -96,7 +106,12 @@ namespace DVLDdataAccess.InternationalLicenses
                 }
                 reader.Close();
             }
-            catch (Exception ex) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve international license for LocalLicenseID: {IssuedUsingLocalLicenseID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
@@ -109,7 +124,7 @@ namespace DVLDdataAccess.InternationalLicenses
             int InternationalLicenseID = -1;
 
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
-            string query = @"INSERT INTO InternationalLicenses 
+            string query = @"INSERT INTO InternationalLicenses  
                             (ApplicationID, DriverID, IssuedUsingLocalLicenseID, IssueDate, ExpirationDate, IsActive, CreatedByUserID)
                             VALUES (@ApplicationID, @DriverID, @IssuedUsingLocalLicenseID, @IssueDate, @ExpirationDate, @IsActive, @CreatedByUserID);
                             SELECT SCOPE_IDENTITY();";
@@ -132,12 +147,15 @@ namespace DVLDdataAccess.InternationalLicenses
                     InternationalLicenseID = insertedID;
                 }
             }
-            catch (Exception ex) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to add new international license for LocalLicenseID: {IssuedUsingLocalLicenseID}", ex);
+            }
             finally { connection.Close(); }
 
             return InternationalLicenseID;
         }
-
 
         public static bool UpdateInternationalLicense(int InternationalLicenseID, int ApplicationID,
             int DriverID, int IssuedUsingLocalLicenseID, DateTime IssueDate,
@@ -170,13 +188,17 @@ namespace DVLDdataAccess.InternationalLicenses
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception ex) { return false; }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to update international license record for InternationalLicenseID: {InternationalLicenseID}", ex);
+                return false;
+            }
             finally { connection.Close(); }
 
             return (rowsAffected > 0);
         }
 
-        
         public static DataTable GetAllInternationalLicenses()
         {
             DataTable dt = new DataTable();
@@ -192,13 +214,16 @@ namespace DVLDdataAccess.InternationalLicenses
                 if (reader.HasRows) dt.Load(reader);
                 reader.Close();
             }
-            catch (Exception ex) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError("Failed to load all international licenses from database", ex);
+            }
             finally { connection.Close(); }
 
             return dt;
         }
 
-        
         public static bool DeleteInternationalLicense(int InternationalLicenseID)
         {
             int rowsAffected = 0;
@@ -212,13 +237,17 @@ namespace DVLDdataAccess.InternationalLicenses
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception ex) { return false; }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to delete international license record for InternationalLicenseID: {InternationalLicenseID}", ex);
+                return false;
+            }
             finally { connection.Close(); }
 
             return (rowsAffected > 0);
         }
 
-        
         public static bool IsInternationalLicenseExist(int InternationalLicenseID)
         {
             bool isFound = false;
@@ -233,7 +262,12 @@ namespace DVLDdataAccess.InternationalLicenses
                 object result = command.ExecuteScalar();
                 if (result != null) isFound = true;
             }
-            catch (Exception ex) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Error checking existence for InternationalLicenseID: {InternationalLicenseID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
