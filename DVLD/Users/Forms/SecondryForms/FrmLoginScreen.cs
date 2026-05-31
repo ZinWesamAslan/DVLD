@@ -1,29 +1,30 @@
 ﻿using DVLD.More;
 using DVLD.Properties;
+using DVLDLogic;
+using DVLDLogic.User;
+using Guna.UI2.WinForms;
 using Microsoft.VisualBasic.ApplicationServices;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DVLDLogic;
-using System.Windows.Forms;
 using System.IO;
-using DVLDLogic.User;
-using System.Threading;
-using Guna.UI2.WinForms;
-using System.Runtime.Remoting.Messaging;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.Remoting.Messaging;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace DVLD.Users.Forms.SecondryForms
 {
     public partial class FrmLoginScreen : Form
     {
         private string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "RememberMe.txt");
-
+        private string RegistryPath = @"HKEY_CURRENT_USER\SOFTWARE\zDVLD";
         public static bool CloseApp = false;
         private int ProjectNameCharTimerCounter = 0;
 
@@ -122,22 +123,26 @@ namespace DVLD.Users.Forms.SecondryForms
 
         private void btnLogin_Click(object sender, EventArgs e)
         {
-            
+
             string UserName = txtName.Text.Trim();
             string Password = txtPassword.Text.Trim();
-            
+
             if (ClsUser.IsUserExist(UserName))
             {
                 if (ClsUser.IsUserActive(UserName))
                 {
                     ClsUser user = ClsUser.Find(UserName);
                     string HashedPassword = user.Password;
-                    if (clsSecurity.IsTruePassword(Password, HashedPassword ))
+                    if (clsSecurity.IsTruePassword(Password, HashedPassword))
                     {
                         ClsGlobal.CurrentUser = user;
                         if (rbtnRememberMe.Checked)
                         {
-                            File.WriteAllText(filePath, UserName + "&" + clsSecurity.SimpleEncrypt(Password, ClsGlobal.EncryptionKey));
+                            string EncryptedPassword = clsSecurity.SimpleEncrypt(Password, ClsGlobal.EncryptionKey);
+                            File.WriteAllText(filePath, UserName + "&" + EncryptedPassword);
+
+                            Registry.SetValue(RegistryPath, "User Name", UserName, RegistryValueKind.String);
+                            Registry.SetValue(RegistryPath, "Password", EncryptedPassword, RegistryValueKind.String);
                         }
                         this.Close();
                     }
@@ -153,7 +158,7 @@ namespace DVLD.Users.Forms.SecondryForms
             }
             else
             {
-                MessageBox.Show("Sorry , User is not found." , "Error !",MessageBoxButtons.OK,MessageBoxIcon.Error);
+                MessageBox.Show("Sorry , User is not found.", "Error !", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -163,7 +168,7 @@ namespace DVLD.Users.Forms.SecondryForms
         {
 
             // 1. Read the first line (or loop through all lines)
-            string record = null;
+            /*string record = null;
             if (File.Exists(filePath))
             {
                  record = File.ReadLines(filePath).First();
@@ -178,7 +183,18 @@ namespace DVLD.Users.Forms.SecondryForms
                     txtName.Text = credentials[0].Trim();
                     txtPassword.Text = clsSecurity.SimpleDecrypt(credentials[1].Trim(), ClsGlobal.EncryptionKey);
                 }
-            }    
+            }*/
+            try
+            {
+                string UserName = Registry.GetValue(RegistryPath, "User Name", "") as string;
+                string Password = Registry.GetValue(RegistryPath, "Password", "") as string;
+                txtName.Text = UserName;
+                txtPassword.Text = clsSecurity.SimpleDecrypt(Password, ClsGlobal.EncryptionKey); ;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
 
         private void txtPassword_KeyPress(object sender, KeyPressEventArgs e)
