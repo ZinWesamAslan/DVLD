@@ -5,12 +5,13 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger; // استدعاء مساحة الأسماء الخاصة باللّوغر
 
 namespace DVLDdataAccess.ApplicationFolder
 {
     public class ClsApplicationsAccess
     {
-        public static bool ThereIsAnActiveApplicationForLicenseClass(int ApplicantPersonID, int ApplicationTypeID,  int LicenseClassID)
+        public static bool ThereIsAnActiveApplicationForLicenseClass(int ApplicantPersonID, int ApplicationTypeID, int LicenseClassID)
         {
             return (getActiveApplicationIDForLicenseClass(ApplicantPersonID, ApplicationTypeID, LicenseClassID) != -1);
         }
@@ -19,8 +20,6 @@ namespace DVLDdataAccess.ApplicationFolder
         {
             return (getActiveApplicationID(ApplicantPersonID, ApplicationTypeID) != -1);
         }
-
-
 
         public static int getActiveApplicationIDForLicenseClass(int ApplicantPersonID, int ApplicationTypeID, int LicenseClassID)
         {
@@ -32,9 +31,9 @@ namespace DVLDdataAccess.ApplicationFolder
                             From
                             Applications INNER JOIN
                             LocalDrivingLicenseApplications ON Applications.ApplicationID = LocalDrivingLicenseApplications.ApplicationID
-                            WHERE ApplicantPersonID = @ApplicantPersonID 
-                            and ApplicationTypeID=@ApplicationTypeID 
-							and LocalDrivingLicenseApplications.LicenseClassID = @LicenseClassID
+                            WHERE ApplicantPersonID = @ApplicantPersonID  
+                            and ApplicationTypeID=@ApplicationTypeID  
+                            and LocalDrivingLicenseApplications.LicenseClassID = @LicenseClassID
                             and ApplicationStatus=1";
 
                 using (SqlCommand command = new SqlCommand(query, connection))
@@ -55,7 +54,8 @@ namespace DVLDdataAccess.ApplicationFolder
                     }
                     catch (Exception ex)
                     {
-
+                        // تسجيل الخطأ بداخل الـ Event Viewer
+                        ClsLogger.LogError($"Error checking active application for License Class. PersonID: {ApplicantPersonID}, ClassID: {LicenseClassID}", ex);
                     }
                 }
             }
@@ -74,6 +74,7 @@ namespace DVLDdataAccess.ApplicationFolder
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@ApplicantPersonID", ApplicantPersonID);
+                    command.Parameters.AddWithValue("@ApplicationTypeID", ApplicationTypeID);
 
                     try
                     {
@@ -87,14 +88,14 @@ namespace DVLDdataAccess.ApplicationFolder
                     }
                     catch (Exception ex)
                     {
-
+                        // تسجيل الخطأ بداخل الـ Event Viewer
+                        ClsLogger.LogError($"Error checking active application ID for PersonID: {ApplicantPersonID}, TypeID: {ApplicationTypeID}", ex);
                     }
                 }
             }
 
             return ID;
         }
-
 
         public static bool GetApplicationInfoByID(int ApplicationID,
         ref int ApplicantPersonID, ref DateTime ApplicationDate, ref int ApplicationTypeID,
@@ -127,6 +128,8 @@ namespace DVLDdataAccess.ApplicationFolder
             catch (Exception ex)
             {
                 isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve application information for ID: {ApplicationID}", ex);
             }
             finally
             {
@@ -141,11 +144,11 @@ namespace DVLDdataAccess.ApplicationFolder
             int ID = -1;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
-            string query = @"INSERT INTO Applications (ApplicantPersonID, ApplicationDate, ApplicationTypeID, 
-                         ApplicationStatus, LastStatusDate, PaidFees, CreatedByUserID)
-                         VALUES (@ApplicantPersonID, @ApplicationDate, @ApplicationTypeID, 
-                         @ApplicationStatus, @LastStatusDate, @PaidFees, @CreatedByUserID);
-                         SELECT SCOPE_IDENTITY();";
+            string query = @"INSERT INTO Applications (ApplicantPersonID, ApplicationDate, ApplicationTypeID,  
+                                 ApplicationStatus, LastStatusDate, PaidFees, CreatedByUserID)
+                                 VALUES (@ApplicantPersonID, @ApplicationDate, @ApplicationTypeID,  
+                                 @ApplicationStatus, @LastStatusDate, @PaidFees, @CreatedByUserID);
+                                 SELECT SCOPE_IDENTITY();";
 
             SqlCommand command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@ApplicantPersonID", ApplicantPersonID);
@@ -164,7 +167,11 @@ namespace DVLDdataAccess.ApplicationFolder
                 if (result != null && int.TryParse(result.ToString(), out int insertedID))
                     ID = insertedID;
             }
-            catch (Exception ex) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to add a new application for PersonID: {ApplicantPersonID}", ex);
+            }
             finally
             {
                 connection.Close();
@@ -179,14 +186,14 @@ namespace DVLDdataAccess.ApplicationFolder
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
             string query = @"UPDATE Applications  
-                         SET ApplicantPersonID = @ApplicantPersonID, 
-                             ApplicationDate = @ApplicationDate, 
-                             ApplicationTypeID = @ApplicationTypeID, 
-                             ApplicationStatus = @ApplicationStatus, 
-                             LastStatusDate = @LastStatusDate, 
-                             PaidFees = @PaidFees, 
-                             CreatedByUserID = @CreatedByUserID
-                         WHERE ApplicationID = @ApplicationID";
+                             SET ApplicantPersonID = @ApplicantPersonID, 
+                                 ApplicationDate = @ApplicationDate, 
+                                 ApplicationTypeID = @ApplicationTypeID, 
+                                 ApplicationStatus = @ApplicationStatus, 
+                                 LastStatusDate = @LastStatusDate, 
+                                 PaidFees = @PaidFees, 
+                                 CreatedByUserID = @CreatedByUserID
+                             WHERE ApplicationID = @ApplicationID";
 
             SqlCommand command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@ApplicationID", ApplicationID);
@@ -205,6 +212,8 @@ namespace DVLDdataAccess.ApplicationFolder
             }
             catch (Exception ex)
             {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to update application for ID: {ApplicationID}", ex);
                 return false;
             }
             finally
@@ -228,7 +237,11 @@ namespace DVLDdataAccess.ApplicationFolder
                 if (reader.HasRows) dt.Load(reader);
                 reader.Close();
             }
-            catch (Exception ex) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError("Failed to retrieve all applications list", ex);
+            }
             finally
             {
                 connection.Close();
@@ -249,7 +262,11 @@ namespace DVLDdataAccess.ApplicationFolder
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception ex) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to delete application ID: {ApplicationID}", ex);
+            }
             finally
             {
                 connection.Close();
@@ -275,6 +292,8 @@ namespace DVLDdataAccess.ApplicationFolder
             catch (Exception ex)
             {
                 isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Error checking existence for application ID: {ApplicationID}", ex);
             }
             finally
             {
@@ -283,17 +302,16 @@ namespace DVLDdataAccess.ApplicationFolder
             return isFound;
         }
 
-        public static bool UpdateStatus(int ApplicationID , int Status)
+        public static bool UpdateStatus(int ApplicationID, int Status)
         {
             int rowsAffected = 0;
 
             using (SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString))
             {
-                
                 string query = @"Update Applications  
-                         set ApplicationStatus = @Status, 
-                             LastStatusDate = GETDATE() 
-                         where ApplicationID = @ApplicationID";
+                                 set ApplicationStatus = @Status, 
+                                     LastStatusDate = GETDATE() 
+                                 where ApplicationID = @ApplicationID";
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
@@ -307,7 +325,8 @@ namespace DVLDdataAccess.ApplicationFolder
                     }
                     catch (Exception ex)
                     {
-                        
+                        // تسجيل الخطأ بداخل الـ Event Viewer
+                        ClsLogger.LogError($"Failed to update status for application ID: {ApplicationID}", ex);
                         return false;
                     }
                 }
@@ -315,6 +334,5 @@ namespace DVLDdataAccess.ApplicationFolder
 
             return (rowsAffected > 0);
         }
-
     }
 }

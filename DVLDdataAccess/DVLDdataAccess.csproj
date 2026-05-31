@@ -49,6 +49,7 @@
     <Compile Include="InternationalLicenses\ClsInternationalLicensesAccess.cs" />
     <Compile Include="LicenseClasses\ClsLicenseClassesAccess.cs" />
     <Compile Include="Licenses\ClsLicensesAccess.cs" />
+    <Compile Include="Logger\ClsLogger.cs" />
     <Compile Include="TestFolder\ClsTestAppointmentsAccess.cs" />
     <Compile Include="TestFolder\ClsTestsAccess.cs" />
     <Compile Include="TestFolder\ClsTestTypesAccess.cs" />

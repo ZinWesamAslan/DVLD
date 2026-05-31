@@ -5,15 +5,16 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger; // استدعاء مساحة الأسماء الخاصة باللوغر المشترك
 
 namespace DVLDdataAccess.ApplicationFolder
 {
     public class ClsTestTypesAccess
     {
         public static bool GetTestTypeInfoByID(int TestTypeID, ref string TestTypeTitle,
-                                       ref string TestTypeDescription, ref float TestTypeFees)
+                                              ref string TestTypeDescription, ref float TestTypeFees)
         {
-            bool isFound = false;            
+            bool isFound = false;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
             string query = "SELECT * FROM TestTypes WHERE TestTypeID = @TestTypeID";
@@ -28,12 +29,9 @@ namespace DVLDdataAccess.ApplicationFolder
 
                 if (reader.Read())
                 {
-                    
                     isFound = true;
-
                     TestTypeTitle = (string)reader["TestTypeTitle"];
 
-                    
                     if (reader["TestTypeDescription"] != DBNull.Value)
                     {
                         TestTypeDescription = (string)reader["TestTypeDescription"];
@@ -43,7 +41,6 @@ namespace DVLDdataAccess.ApplicationFolder
                         TestTypeDescription = "";
                     }
 
-                    
                     TestTypeFees = Convert.ToSingle(reader["TestTypeFees"]);
                 }
                 else
@@ -55,8 +52,9 @@ namespace DVLDdataAccess.ApplicationFolder
             }
             catch (Exception ex)
             {
-                
                 isFound = false;
+                // تطبيق اللوغر: تمرير رسالة السياق مع كائن الاستثناء
+                ClsLogger.LogError($"Failed to retrieve test type info for TestTypeID: {TestTypeID}", ex);
             }
             finally
             {
@@ -68,20 +66,16 @@ namespace DVLDdataAccess.ApplicationFolder
 
         public static int AddNewTestType(string TestTypeTitle, string TestTypeDescription, float TestTypeFees)
         {
-            
             int ID = -1;
-
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
             string query = @"INSERT INTO TestTypes (TestTypeTitle, TestTypeDescription, TestTypeFees)
-                     VALUES (@TestTypeTitle, @TestTypeDescription, @TestTypeFees);
-                     SELECT SCOPE_IDENTITY();";
+                             VALUES (@TestTypeTitle, @TestTypeDescription, @TestTypeFees);
+                             SELECT SCOPE_IDENTITY();";
 
             SqlCommand command = new SqlCommand(query, connection);
-
             command.Parameters.AddWithValue("@TestTypeTitle", TestTypeTitle);
 
-            
             if (TestTypeDescription != "" && TestTypeDescription != null)
                 command.Parameters.AddWithValue("@TestTypeDescription", TestTypeDescription);
             else
@@ -92,7 +86,6 @@ namespace DVLDdataAccess.ApplicationFolder
             try
             {
                 connection.Open();
-
                 object result = command.ExecuteScalar();
 
                 if (result != null && int.TryParse(result.ToString(), out int insertedID))
@@ -102,7 +95,8 @@ namespace DVLDdataAccess.ApplicationFolder
             }
             catch (Exception ex)
             {
-                // Console.WriteLine("Error: " + ex.Message);
+                // تطبيق اللوغر: إرسال تفاصيل العنوان والبيانات المدخلة في حال فشل الإضافة
+                ClsLogger.LogError($"Failed to add new test type with Title: '{TestTypeTitle}'", ex);
             }
             finally
             {
@@ -112,23 +106,20 @@ namespace DVLDdataAccess.ApplicationFolder
             return ID;
         }
 
-
         public static DataTable GetAllTestTypes()
         {
             DataTable dt = new DataTable();
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
-            string query =
-                @"SELECT TestTypeID, TestTypeTitle, TestTypeDescription, TestTypeFees
-                  FROM TestTypes
-                  ORDER BY TestTypeTitle";
+            string query = @"SELECT TestTypeID, TestTypeTitle, TestTypeDescription, TestTypeFees
+                             FROM TestTypes
+                             ORDER BY TestTypeTitle";
 
             SqlCommand command = new SqlCommand(query, connection);
 
             try
             {
                 connection.Open();
-
                 SqlDataReader reader = command.ExecuteReader();
 
                 if (reader.HasRows)
@@ -140,7 +131,8 @@ namespace DVLDdataAccess.ApplicationFolder
             }
             catch (Exception ex)
             {
-                
+                // تطبيق اللوغر
+                ClsLogger.LogError("Failed to retrieve all test types data table", ex);
             }
             finally
             {
@@ -149,7 +141,6 @@ namespace DVLDdataAccess.ApplicationFolder
 
             return dt;
         }
-
 
         public static bool UpdateTestType(int TestTypeID, string TestTypeTitle, string TestTypeDescription, float TestTypeFees)
         {
@@ -163,7 +154,6 @@ namespace DVLDdataAccess.ApplicationFolder
                              WHERE TestTypeID = @TestTypeID";
 
             SqlCommand command = new SqlCommand(query, connection);
-
             command.Parameters.AddWithValue("@TestTypeID", TestTypeID);
             command.Parameters.AddWithValue("@TestTypeTitle", TestTypeTitle);
             command.Parameters.AddWithValue("@TestTypeDescription", TestTypeDescription);
@@ -176,6 +166,8 @@ namespace DVLDdataAccess.ApplicationFolder
             }
             catch (Exception ex)
             {
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to update test type records for TestTypeID: {TestTypeID}", ex);
                 return false;
             }
             finally
@@ -185,6 +177,5 @@ namespace DVLDdataAccess.ApplicationFolder
 
             return (rowsAffected > 0);
         }
-
     }
 }

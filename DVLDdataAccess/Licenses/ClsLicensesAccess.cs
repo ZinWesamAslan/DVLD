@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DVLDdataAccess.Logger;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -49,12 +50,16 @@ namespace DVLDdataAccess.Licenses
                     }
                     reader.Close();
                 }
-                catch (Exception) { isFound = false; }
+                catch (Exception ex)
+                {
+                    isFound = false;
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError($"Failed to retrieve license information for LicenseID: {LicenseID}", ex);
+                }
                 finally { connection.Close(); }
 
                 return isFound;
             }
-
 
             public static bool GetLicenseInfoByApplicationID(int ApplicationID, ref int LicenseID, ref int DriverID,
                 ref int LicenseClass, ref DateTime IssueDate, ref DateTime ExpirationDate,
@@ -80,7 +85,6 @@ namespace DVLDdataAccess.Licenses
                         IssueDate = (DateTime)reader["IssueDate"];
                         ExpirationDate = (DateTime)reader["ExpirationDate"];
 
-
                         if (reader["Notes"] != DBNull.Value)
                             Notes = (string)reader["Notes"];
                         else
@@ -93,7 +97,12 @@ namespace DVLDdataAccess.Licenses
                     }
                     reader.Close();
                 }
-                catch (Exception) { isFound = false; }
+                catch (Exception ex)
+                {
+                    isFound = false;
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError($"Failed to retrieve license information for ApplicationID: {ApplicationID}", ex);
+                }
                 finally { connection.Close(); }
 
                 return isFound;
@@ -107,50 +116,41 @@ namespace DVLDdataAccess.Licenses
 
                 SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
-
                 string query = @"
                     BEGIN TRY
                         BEGIN TRANSACTION;
-                    
-                            
+                        
                             UPDATE Applications 
                             SET ApplicationStatus = 3 
                             WHERE ApplicationID = @ApplicationID;
-                    
-                            
+                        
                             DECLARE @NewDriverID INT;
-                    
-                            
+                        
                             IF NOT EXISTS (SELECT 1 FROM Drivers WHERE PersonID = @PersonID)
                             BEGIN
                                 INSERT INTO Drivers (PersonID, CreatedByUserID, CreatedDate)
                                 VALUES (@PersonID, @CreatedByUserID, GETDATE());
-                    
+                        
                                 SET @NewDriverID = SCOPE_IDENTITY();
                             END
                             ELSE
                             BEGIN
-                                
                                 SELECT @NewDriverID = DriverID FROM Drivers WHERE PersonID = @PersonID;
                             END
-                    
-                            
+                        
                             INSERT INTO Licenses (ApplicationID, DriverID, LicenseClass, IssueDate, ExpirationDate, Notes, PaidFees, IsActive, IssueReason, CreatedByUserID)
                             VALUES (@ApplicationID, @NewDriverID, @LicenseClass, @IssueDate, @ExpirationDate, @Notes, @PaidFees, @IsActive, @IssueReason, @CreatedByUserID);
-                    
-                            
+                        
                             SELECT SCOPE_IDENTITY();
-                    
+                        
                         COMMIT TRANSACTION;
                     END TRY
                     BEGIN CATCH
                         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-                        
                         SELECT -1; 
                     END CATCH";
 
                 SqlCommand command = new SqlCommand(query, connection);
-
 
                 command.Parameters.AddWithValue("@PersonID", PersonID);
                 command.Parameters.AddWithValue("@ApplicationID", ApplicationID);
@@ -173,10 +173,11 @@ namespace DVLDdataAccess.Licenses
                         NewLicenseID = insertedID;
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-
                     NewLicenseID = -1;
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError($"Failed to add new license for the first time for PersonID: {PersonID} and ApplicationID: {ApplicationID}", ex);
                 }
                 finally
                 {
@@ -221,7 +222,11 @@ namespace DVLDdataAccess.Licenses
                     if (result != null && int.TryParse(result.ToString(), out int insertedID))
                         LicenseID = insertedID;
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError($"Failed to add new license record for DriverID: {DriverID} and ApplicationID: {ApplicationID}", ex);
+                }
                 finally { connection.Close(); }
 
                 return LicenseID;
@@ -264,7 +269,12 @@ namespace DVLDdataAccess.Licenses
                     connection.Open();
                     rowsAffected = command.ExecuteNonQuery();
                 }
-                catch (Exception) { return false; }
+                catch (Exception ex)
+                {
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError($"Failed to update database record for LicenseID: {LicenseID}", ex);
+                    return false;
+                }
                 finally { connection.Close(); }
 
                 return (rowsAffected > 0);
@@ -277,7 +287,7 @@ namespace DVLDdataAccess.Licenses
                 string query = @"
                                SELECT    Licenses.LicenseID, Licenses.ApplicationID, LicenseClasses.ClassName, Licenses.IssueDate,licenses.ExpirationDate, Licenses.IsActive
                                FROM      Licenses INNER JOIN LicenseClasses ON Licenses.LicenseClass = LicenseClasses.LicenseClassID 
-                               where     Licenses.DriverID = @DriverID;";
+                               WHERE      Licenses.DriverID = @DriverID;";
                 SqlCommand command = new SqlCommand(query, connection);
                 command.Parameters.AddWithValue("@DriverID", DriverID);
                 try
@@ -287,12 +297,15 @@ namespace DVLDdataAccess.Licenses
                     if (reader.HasRows) dt.Load(reader);
                     reader.Close();
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError($"Failed to load license history for DriverID: {DriverID}", ex);
+                }
                 finally { connection.Close(); }
 
                 return dt;
             }
-
 
             public static DataTable GetAllLicenses()
             {
@@ -308,7 +321,11 @@ namespace DVLDdataAccess.Licenses
                     if (reader.HasRows) dt.Load(reader);
                     reader.Close();
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError("Failed to load all licenses table from database", ex);
+                }
                 finally { connection.Close(); }
 
                 return dt;
@@ -327,7 +344,11 @@ namespace DVLDdataAccess.Licenses
                     connection.Open();
                     rowsAffected = command.ExecuteNonQuery();
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError($"Failed to delete license record for LicenseID: {LicenseID}", ex);
+                }
                 finally { connection.Close(); }
 
                 return (rowsAffected > 0);
@@ -348,11 +369,17 @@ namespace DVLDdataAccess.Licenses
                     isFound = reader.HasRows;
                     reader.Close();
                 }
-                catch (Exception) { isFound = false; }
+                catch (Exception ex)
+                {
+                    isFound = false;
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError($"Error checking license existence for LicenseID: {LicenseID}", ex);
+                }
                 finally { connection.Close(); }
 
                 return isFound;
             }
+
             public static bool IsLicenseExistsByDriverID(int DriverID, int LicenseClassID)
             {
                 bool isFound = false;
@@ -369,14 +396,16 @@ namespace DVLDdataAccess.Licenses
                     isFound = reader.HasRows;
                     reader.Close();
                 }
-                catch (Exception) { isFound = false; }
+                catch (Exception ex)
+                {
+                    isFound = false;
+                    // تسجيل الخطأ بداخل الـ Event Viewer
+                    ClsLogger.LogError($"Error checking license existence for DriverID: {DriverID} and LicenseClassID: {LicenseClassID}", ex);
+                }
                 finally { connection.Close(); }
 
                 return isFound;
             }
-
-
-
         }
     }
 }

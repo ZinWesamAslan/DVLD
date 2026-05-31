@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger; // استدعاء مساحة الأسماء الخاصة باللّوغر
 
 namespace DVLDdataAccess.ApplicationTypes
 {
@@ -15,11 +16,8 @@ namespace DVLDdataAccess.ApplicationTypes
             bool isFound = false;
 
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
-
             string query = "SELECT * FROM ApplicationTypes WHERE ApplicationTypeID = @ApplicationTypeID";
-
             SqlCommand command = new SqlCommand(query, connection);
-
             command.Parameters.AddWithValue("@ApplicationTypeID", ApplicationTypeID);
 
             try
@@ -41,13 +39,12 @@ namespace DVLDdataAccess.ApplicationTypes
                 }
 
                 reader.Close();
-
-
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
                 isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve application type info for ID: {ApplicationTypeID}", ex);
             }
             finally
             {
@@ -62,17 +59,15 @@ namespace DVLDdataAccess.ApplicationTypes
             DataTable dt = new DataTable();
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
-            string query =
-                @"SELECT ApplicationTypeID, ApplicationTypeTitle, ApplicationTypeFees
-          FROM ApplicationTypes
-          ORDER BY ApplicationTypeTitle";
+            string query = @"SELECT ApplicationTypeID, ApplicationTypeTitle, ApplicationTypeFees
+                             FROM ApplicationTypes
+                             ORDER BY ApplicationTypeTitle";
 
             SqlCommand command = new SqlCommand(query, connection);
 
             try
             {
                 connection.Open();
-
                 SqlDataReader reader = command.ExecuteReader();
 
                 if (reader.HasRows)
@@ -84,8 +79,8 @@ namespace DVLDdataAccess.ApplicationTypes
             }
             catch (Exception ex)
             {
-                // يمكنك تسجيل الخطأ هنا إذا رغبت
-                // Console.WriteLine("Error: " + ex.Message);
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError("Failed to retrieve all application types table", ex);
             }
             finally
             {
@@ -95,16 +90,15 @@ namespace DVLDdataAccess.ApplicationTypes
             return dt;
         }
 
-
         public static bool UpdateApplicationType(int ApplicationTypeID, string ApplicationTypeTitle, float ApplicationTypeFees)
         {
             int rowsAffected = 0;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
             string query = @"UPDATE ApplicationTypes
-                     SET ApplicationTypeTitle = @ApplicationTypeTitle,
-                         ApplicationTypeFees = @ApplicationTypeFees
-                     WHERE ApplicationTypeID = @ApplicationTypeID";
+                             SET ApplicationTypeTitle = @ApplicationTypeTitle,
+                                 ApplicationTypeFees = @ApplicationTypeFees
+                             WHERE ApplicationTypeID = @ApplicationTypeID";
 
             SqlCommand command = new SqlCommand(query, connection);
 
@@ -119,7 +113,8 @@ namespace DVLDdataAccess.ApplicationTypes
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to update application type for ID: {ApplicationTypeID}", ex);
                 return false;
             }
             finally
@@ -130,42 +125,13 @@ namespace DVLDdataAccess.ApplicationTypes
             return (rowsAffected > 0);
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         public static int AddNewApplicationType(string ApplicationTypeTitle, float ApplicationTypeFees)
         {
             int ID = -1;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
             string query = @"INSERT INTO ApplicationTypes (ApplicationTypeTitle, ApplicationFees)
-                         VALUES (@ApplicationTypeTitle, @ApplicationTypeFees);
-                         SELECT SCOPE_IDENTITY();";
+                             VALUES (@ApplicationTypeTitle, @ApplicationTypeFees);
+                             SELECT SCOPE_IDENTITY();";
 
             SqlCommand command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@ApplicationTypeTitle", ApplicationTypeTitle);
@@ -179,12 +145,16 @@ namespace DVLDdataAccess.ApplicationTypes
                 if (result != null && int.TryParse(result.ToString(), out int insertedID))
                     ID = insertedID;
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to add new application type with title: {ApplicationTypeTitle}", ex);
+            }
             finally { connection.Close(); }
 
             return ID;
         }
-        
+
         public static bool DeleteApplicationType(int ApplicationTypeID)
         {
             int rowsAffected = 0;
@@ -198,7 +168,11 @@ namespace DVLDdataAccess.ApplicationTypes
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to delete application type for ID: {ApplicationTypeID}", ex);
+            }
             finally { connection.Close(); }
 
             return (rowsAffected > 0);
@@ -219,11 +193,15 @@ namespace DVLDdataAccess.ApplicationTypes
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Error checking existence of application type ID: {ApplicationTypeID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
         }
-
     }
 }

@@ -1,20 +1,21 @@
-﻿using System;
+﻿
+using DVLDdataAccess.Logger;
+using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-
 namespace DVLDdataAccess
 {
-    public  class ClsPeopleAccess
+    public class ClsPeopleAccess
     {
-        public static bool GetPersonInfoByID( int PersonID, ref string NationalNO, ref string FirstName,
-                                              ref string SecondName , ref string ThirdName , ref string LastName,
-                                              ref string Gender , ref string Email, ref string Phone,
-                                              ref string Address, ref DateTime DateOfBirth, ref int CountryID, 
+        public static bool GetPersonInfoByID(int PersonID, ref string NationalNO, ref string FirstName,
+                                              ref string SecondName, ref string ThirdName, ref string LastName,
+                                              ref string Gender, ref string Email, ref string Phone,
+                                              ref string Address, ref DateTime DateOfBirth, ref int CountryID,
                                               ref string ImagePath)
         {
             bool isFound = false;
@@ -75,13 +76,12 @@ namespace DVLDdataAccess
                 }
 
                 reader.Close();
-
-
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
                 isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to retrieve person information for PersonID: {PersonID}", ex);
             }
             finally
             {
@@ -91,7 +91,7 @@ namespace DVLDdataAccess
             return isFound;
         }
 
-        public static bool GetPersonInfoByNationalNO( string NationalNO,ref int PersonID, ref string FirstName,
+        public static bool GetPersonInfoByNationalNO(string NationalNO, ref int PersonID, ref string FirstName,
                                               ref string SecondName, ref string ThirdName, ref string LastName,
                                               ref string Gender, ref string Email, ref string Phone,
                                               ref string Address, ref DateTime DateOfBirth, ref int CountryID,
@@ -155,13 +155,12 @@ namespace DVLDdataAccess
                 }
 
                 reader.Close();
-
-
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
                 isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to retrieve person information for NationalNO: {NationalNO}", ex);
             }
             finally
             {
@@ -171,8 +170,8 @@ namespace DVLDdataAccess
             return isFound;
         }
 
-        public static int AddNewPerson( string NationalNo ,string FirstName, string SecondName , 
-                                        string ThirdName ,string LastName,string Gender,
+        public static int AddNewPerson(string NationalNo, string FirstName, string SecondName,
+                                        string ThirdName, string LastName, string Gender,
                                         string Email, string Phone, string Address,
                                         DateTime DateOfBirth, int CountryID, string ImagePath)
         {
@@ -186,7 +185,7 @@ namespace DVLDdataAccess
                              SELECT SCOPE_IDENTITY();";
 
             SqlCommand command = new SqlCommand(query, connection);
-            command.Parameters.AddWithValue("@NationalNo" , NationalNo);
+            command.Parameters.AddWithValue("@NationalNo", NationalNo);
             command.Parameters.AddWithValue("@FirstName", FirstName);
             command.Parameters.AddWithValue("@SecondName", SecondName);
             command.Parameters.AddWithValue("@ThirdName", ThirdName);
@@ -216,29 +215,26 @@ namespace DVLDdataAccess
 
                 object result = command.ExecuteScalar();
 
-
                 if (result != null && int.TryParse(result.ToString(), out int insertedID))
                     ID = insertedID;
-                
-            }
 
-            catch (Exception ex) 
+            }
+            catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to insert a new person record with NationalNo: {NationalNo}", ex);
             }
-
             finally
             {
                 connection.Close();
             }
 
-
             return ID;
         }
 
-        public static bool UpdatePerson( int PersonID, string NationalNo , string FirstName, 
-                                         string SecondName,string ThirdName ,string LastName,
-                                         string Gender ,string Email, string Phone,
+        public static bool UpdatePerson(int PersonID, string NationalNo, string FirstName,
+                                         string SecondName, string ThirdName, string LastName,
+                                         string Gender, string Email, string Phone,
                                          string Address, DateTime DateOfBirth, int CountryID,
                                          string ImagePath)
         {
@@ -288,19 +284,17 @@ namespace DVLDdataAccess
             else
                 command.Parameters.AddWithValue("@ImagePath", System.DBNull.Value);
 
-
             try
             {
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
-
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to update database record for PersonID: {PersonID}", ex);
                 return false;
             }
-
             finally
             {
                 connection.Close();
@@ -314,25 +308,25 @@ namespace DVLDdataAccess
 
             DataTable dt = new DataTable();
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
-            
-             string query =
-              @"SELECT People.PersonID, People.NationalNo,
+
+            string query =
+             @"SELECT People.PersonID, People.NationalNo,
               People.FirstName, People.SecondName, People.ThirdName, People.LastName, 
               People.Email, People.Phone,People.Address,
-			  People.DateOfBirth,
-				  CASE
+              People.DateOfBirth,
+                  CASE
                   WHEN People.Gender = 'm' THEN 'Male'
 
                   ELSE 'Female'
 
                   END as Gender,
-			   
+               
               People.CountryID, Countries.CountryName, People.ImagePath
               FROM            People INNER JOIN
-                         Countries ON People.CountryID = Countries.CountryID
+                           Countries ON People.CountryID = Countries.CountryID
                 ORDER BY People.FirstName";
 
-             
+
             SqlCommand command = new SqlCommand(query, connection);
 
             try
@@ -342,19 +336,16 @@ namespace DVLDdataAccess
                 SqlDataReader reader = command.ExecuteReader();
 
                 if (reader.HasRows)
-
                 {
                     dt.Load(reader);
                 }
 
                 reader.Close();
-
-
             }
-
             catch (Exception ex)
             {
-                // Console.WriteLine("Error: " + ex.Message);
+                // تطبيق اللوغر
+                ClsLogger.LogError("Failed to load all people data table from database", ex);
             }
             finally
             {
@@ -362,9 +353,7 @@ namespace DVLDdataAccess
             }
 
             return dt;
-
         }
-
 
         public static bool DeletePerson(int PersonID)
         {
@@ -385,21 +374,18 @@ namespace DVLDdataAccess
                 connection.Open();
 
                 rowsAffected = command.ExecuteNonQuery();
-
             }
             catch (Exception ex)
             {
-                // Console.WriteLine("Error: " + ex.Message);
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Failed to delete person data records for PersonID: {PersonID}", ex);
             }
             finally
             {
-
                 connection.Close();
-
             }
 
             return (rowsAffected > 0);
-
         }
 
         public static bool IsPersonExist(int PersonID)
@@ -425,8 +411,9 @@ namespace DVLDdataAccess
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
                 isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Error checking person existence for PersonID: {PersonID}", ex);
             }
             finally
             {
@@ -459,8 +446,9 @@ namespace DVLDdataAccess
             }
             catch (Exception ex)
             {
-                //Console.WriteLine("Error: " + ex.Message);
                 isFound = false;
+                // تطبيق اللوغر
+                ClsLogger.LogError($"Error checking person existence for NationalNO: {NationalNO}", ex);
             }
             finally
             {
@@ -469,6 +457,5 @@ namespace DVLDdataAccess
 
             return isFound;
         }
-
     }
 }

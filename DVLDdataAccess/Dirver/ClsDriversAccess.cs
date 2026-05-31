@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DVLDdataAccess.Logger; // استخدام مساحة الأسماء الجديدة للّوغر الخاص بك
 
 namespace DVLDdataAccess.Dirver
 {
@@ -32,7 +33,12 @@ namespace DVLDdataAccess.Dirver
                 }
                 reader.Close();
             }
-            catch (Exception) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve driver information for DriverID: {DriverID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
@@ -60,7 +66,12 @@ namespace DVLDdataAccess.Dirver
                 }
                 reader.Close();
             }
-            catch (Exception) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve driver information for PersonID: {PersonID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
@@ -87,7 +98,11 @@ namespace DVLDdataAccess.Dirver
                 if (result != null && int.TryParse(result.ToString(), out int insertedID))
                     DriverID = insertedID;
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to add new driver for PersonID: {PersonID}", ex);
+            }
             finally { connection.Close(); }
 
             return DriverID;
@@ -113,7 +128,12 @@ namespace DVLDdataAccess.Dirver
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception) { return false; }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to update driver record for DriverID: {DriverID}", ex);
+                return false;
+            }
             finally { connection.Close(); }
 
             return (rowsAffected > 0);
@@ -124,7 +144,6 @@ namespace DVLDdataAccess.Dirver
             DataTable dt = new DataTable();
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
 
-            
             string query = @"SELECT Drivers.DriverID, Drivers.PersonID, 
                              People.NationalNo, People.FirstName + ' ' + People.SecondName + ' ' + People.ThirdName + ' ' + People.LastName AS FullName, 
                              Drivers.CreatedDate, ActiveLicense = (select count(l.LicenseID) from Licenses l where l.DriverID = Drivers.DriverID)
@@ -140,7 +159,11 @@ namespace DVLDdataAccess.Dirver
                 if (reader.HasRows) dt.Load(reader);
                 reader.Close();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError("Failed to retrieve all drivers list from database", ex);
+            }
             finally { connection.Close(); }
 
             return dt;
@@ -161,7 +184,12 @@ namespace DVLDdataAccess.Dirver
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Error checking driver existence for PersonID: {PersonID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;

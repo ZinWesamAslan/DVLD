@@ -1,5 +1,6 @@
 ﻿using DVLD.More;
 using DVLD.Properties;
+using DVLDBusiness;
 using DVLDLogic;
 using DVLDLogic.User;
 using Guna.UI2.WinForms;
@@ -18,6 +19,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+
 
 namespace DVLD.Users.Forms.SecondryForms
 {
@@ -135,6 +137,7 @@ namespace DVLD.Users.Forms.SecondryForms
                     string HashedPassword = user.Password;
                     if (clsSecurity.IsTruePassword(Password, HashedPassword))
                     {
+                        Logger.LogInfo($"User '{UserName}' logged in successfully at {DateTime.Now}");
                         ClsGlobal.CurrentUser = user;
                         if (rbtnRememberMe.Checked)
                         {

@@ -1,7 +1,9 @@
-﻿using System;
+﻿ // استدعاء مساحة الأسماء الخاصة باللوغر المشترك
+using DVLDdataAccess.Logger;
+using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,7 +13,7 @@ namespace DVLDdataAccess.LicenseClasses
     public class ClsLicenseClassesAccess
     {
         public static bool GetLicenseClassInfoByID(int LicenseClassID, ref string ClassName, ref string ClassDescription,
-                                              ref byte MinimumAllowedAge, ref byte DefaultValidityLength, ref float ClassFees)
+                                               ref byte MinimumAllowedAge, ref byte DefaultValidityLength, ref float ClassFees)
         {
             bool isFound = false;
             SqlConnection connection = new SqlConnection(ClsDataAccessSettings.ConnectionString);
@@ -35,7 +37,12 @@ namespace DVLDdataAccess.LicenseClasses
                 }
                 reader.Close();
             }
-            catch (Exception) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to retrieve license class information for LicenseClassID: {LicenseClassID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
@@ -63,7 +70,11 @@ namespace DVLDdataAccess.LicenseClasses
                 if (result != null && int.TryParse(result.ToString(), out int insertedID))
                     ID = insertedID;
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to add new license class: {ClassName}", ex);
+            }
             finally { connection.Close(); }
 
             return ID;
@@ -94,7 +105,12 @@ namespace DVLDdataAccess.LicenseClasses
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception) { return false; }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to update license class for LicenseClassID: {LicenseClassID}", ex);
+                return false;
+            }
             finally { connection.Close(); }
 
             return (rowsAffected > 0);
@@ -114,7 +130,11 @@ namespace DVLDdataAccess.LicenseClasses
                 if (reader.HasRows) dt.Load(reader);
                 reader.Close();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError("Failed to retrieve all license classes table from database", ex);
+            }
             finally { connection.Close(); }
 
             return dt;
@@ -133,7 +153,11 @@ namespace DVLDdataAccess.LicenseClasses
                 connection.Open();
                 rowsAffected = command.ExecuteNonQuery();
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Failed to delete license class record for LicenseClassID: {LicenseClassID}", ex);
+            }
             finally { connection.Close(); }
 
             return (rowsAffected > 0);
@@ -154,11 +178,15 @@ namespace DVLDdataAccess.LicenseClasses
                 isFound = reader.HasRows;
                 reader.Close();
             }
-            catch (Exception) { isFound = false; }
+            catch (Exception ex)
+            {
+                isFound = false;
+                // تسجيل الخطأ بداخل الـ Event Viewer
+                ClsLogger.LogError($"Error checking existence for LicenseClassID: {LicenseClassID}", ex);
+            }
             finally { connection.Close(); }
 
             return isFound;
         }
-
     }
 }
