@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Configuration;
 
 namespace DVLDdataAccess
 {
-    internal class ClsDataAccessSettings
+    public static class ClsDataAccessSettings
     {
-        public static string ConnectionString = "Server=.;Database=zDVLD;User Id=sa;Password=sa123456;";
+        public static string ConnectionString = ConfigurationManager.ConnectionStrings["MyConnectionString"].ConnectionString;
     }
 }
