@@ -84,7 +84,7 @@ namespace DVLDdataAccess.Logger
             }
             catch (Exception e)
             {
-                throw e;
+                Console.WriteLine(e.Message);
             }
         }
     }
