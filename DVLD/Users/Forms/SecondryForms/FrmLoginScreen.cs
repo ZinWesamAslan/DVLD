@@ -125,7 +125,7 @@ namespace DVLD.Users.Forms.SecondryForms
 
         private void btnLogin_Click(object sender, EventArgs e)
         {
-
+            
             string UserName = txtName.Text.Trim();
             string Password = txtPassword.Text.Trim();
 
@@ -141,7 +141,7 @@ namespace DVLD.Users.Forms.SecondryForms
                         ClsGlobal.CurrentUser = user;
                         if (rbtnRememberMe.Checked)
                         {
-                            string EncryptedPassword = clsSecurity.SimpleEncrypt(Password, ClsGlobal.EncryptionKey);
+                            string EncryptedPassword = clsSecurity.SimpleEncrypt(Password, Registry.GetValue(RegistryPath, "PasswordEncryptionKey", "")as string);
                             File.WriteAllText(filePath, UserName + "&" + EncryptedPassword);
 
                             Registry.SetValue(RegistryPath, "User Name", UserName, RegistryValueKind.String);
@@ -164,8 +164,6 @@ namespace DVLD.Users.Forms.SecondryForms
                 MessageBox.Show("Sorry , User is not found.", "Error !", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-
 
         private void FrmLoginScreen_Load(object sender, EventArgs e)
         {
@@ -192,7 +190,7 @@ namespace DVLD.Users.Forms.SecondryForms
                 string UserName = Registry.GetValue(RegistryPath, "User Name", "") as string;
                 string Password = Registry.GetValue(RegistryPath, "Password", "") as string;
                 txtName.Text = UserName;
-                txtPassword.Text = clsSecurity.SimpleDecrypt(Password, ClsGlobal.EncryptionKey); ;
+                txtPassword.Text = clsSecurity.SimpleDecrypt(Password, Registry.GetValue(RegistryPath, "PasswordEncryptionKey", "") as string); ;
             }
             catch (Exception ex)
             {
@@ -238,7 +236,6 @@ namespace DVLD.Users.Forms.SecondryForms
             }
             
         }
-
 
         private void btnViewHide_KeyDown(object sender, KeyEventArgs e)
         {

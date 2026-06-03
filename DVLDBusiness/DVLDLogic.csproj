@@ -50,6 +50,7 @@
     <Compile Include="LicenseClass\ClsLicenseClass.cs" />
     <Compile Include="License\ClsLocalLicense.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="Security\clsSecurity.cs" />
     <Compile Include="TestFolder\ClsTest.cs" />
     <Compile Include="TestFolder\ClsTestAppointment.cs" />
     <Compile Include="TestFolder\ClsTestType.cs" />

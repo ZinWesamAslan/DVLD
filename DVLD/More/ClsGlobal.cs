@@ -12,6 +12,8 @@ namespace DVLD.More
     public class ClsGlobal
     {
         public static ClsUser CurrentUser ;
-        public static string EncryptionKey = "9vmoiwrut8JFDKJzoJ";
+
+        //public static string EncryptionKey = "9vmoiwrut8JFDKJzoJ"; // was moved to win-reg
+
     }
 }
