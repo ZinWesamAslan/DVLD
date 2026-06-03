@@ -240,7 +240,6 @@
     </Compile>
     <Compile Include="More\ClsFormat.cs" />
     <Compile Include="More\ClsGlobal.cs" />
-    <Compile Include="More\clsSecurity.cs" />
     <Compile Include="More\ClsSettings.cs" />
     <Compile Include="More\ClsUtil.cs" />
     <Compile Include="More\ClsValidation.cs" />
