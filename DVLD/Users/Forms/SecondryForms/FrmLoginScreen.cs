@@ -141,7 +141,7 @@ namespace DVLD.Users.Forms.SecondryForms
                         ClsGlobal.CurrentUser = user;
                         if (rbtnRememberMe.Checked)
                         {
-                            string EncryptedPassword = clsSecurity.SimpleEncrypt(Password, Registry.GetValue(RegistryPath, "PasswordEncryptionKey", "")as string);
+                            string EncryptedPassword = clsSecurity.SymmetricEncrypt(Password);
                             File.WriteAllText(filePath, UserName + "&" + EncryptedPassword);
 
                             Registry.SetValue(RegistryPath, "User Name", UserName, RegistryValueKind.String);
@@ -190,7 +190,7 @@ namespace DVLD.Users.Forms.SecondryForms
                 string UserName = Registry.GetValue(RegistryPath, "User Name", "") as string;
                 string Password = Registry.GetValue(RegistryPath, "Password", "") as string;
                 txtName.Text = UserName;
-                txtPassword.Text = clsSecurity.SimpleDecrypt(Password, Registry.GetValue(RegistryPath, "PasswordEncryptionKey", "") as string); ;
+                txtPassword.Text = clsSecurity.SymmetricDecrypt(Password); ;
             }
             catch (Exception ex)
             {

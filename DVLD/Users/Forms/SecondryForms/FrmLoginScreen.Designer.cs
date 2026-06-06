@@ -417,7 +417,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "FrmLoginScreen";
-            this.Text = "Form1";
+            this.Text = "\'";
             this.Load += new System.EventHandler(this.FrmLoginScreen_Load);
             ((System.ComponentModel.ISupportInitialize)(this.picLoginScreen)).EndInit();
             this.ResumeLayout(false);

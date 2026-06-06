@@ -13,7 +13,7 @@ namespace DVLD.More
     {
         public static ClsUser CurrentUser ;
 
-        //public static string EncryptionKey = "9vmoiwrut8JFDKJzoJ"; // was moved to win-reg
+        //public static string EncryptionKey = "jd3ks98djchg54GH"; // was moved to win-reg
 
     }
 }
